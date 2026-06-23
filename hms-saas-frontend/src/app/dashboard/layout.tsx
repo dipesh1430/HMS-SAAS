@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Home, Users, Calendar, Settings, Activity, Menu, Bell } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { LogoutButton } from "@/components/dashboard/LogoutButton";
+import { Button } from "@/components/ui/button";
 
 export default function DashboardLayout({
   children,
@@ -51,10 +52,10 @@ export default function DashboardLayout({
         <header className="flex h-16 items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-6 shadow-sm">
           <div className="flex items-center gap-4">
             {/* Mobile Menu Toggle (Visible only on small screens) */}
-            <button className="md:hidden text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors">
+            <Button className="md:hidden text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors">
               <Menu className="h-5 w-5" />
-            </button>
-            
+            </Button>
+
             {/* Using DM Sans for a warm, readable breadcrumb/header */}
             <h2 className="font-dmsans text-sm font-semibold text-zinc-500 dark:text-zinc-400">
               Dashboard Overview
@@ -64,10 +65,10 @@ export default function DashboardLayout({
           <div className="flex items-center gap-5">
             {/* Notification Bell */}
             <ThemeToggle />
-            <button className="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors relative">
+            <Button className="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors relative">
               <Bell className="h-5 w-5" />
               <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-blue-600 border border-white dark:border-zinc-950"></span>
-            </button>
+            </Button>
 
             {/* Profile Badge */}
             <div className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-sm cursor-pointer hover:bg-blue-700 transition-colors">

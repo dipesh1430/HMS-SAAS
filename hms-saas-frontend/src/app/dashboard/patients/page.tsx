@@ -9,18 +9,34 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, MoreHorizontal } from "lucide-react";
+import { Search, MoreHorizontal } from "lucide-react";
+import { AddPatientSheet } from "@/components/dashboard/patients/AddPatientSheet";
+import { Pool } from "pg";
 
-// Mock data to simulate MongoDB documents
-const patientsData = [
-  { id: "PT-1042", name: "Ramesh Kumar", age: 45, gender: "Male", contact: "+91 98765 43210", status: "Admitted" },
-  { id: "PT-1043", name: "Sunita Sharma", age: 32, gender: "Female", contact: "+91 87654 32109", status: "Discharged" },
-  { id: "PT-1044", name: "Vikram Singh", age: 28, gender: "Male", contact: "+91 76543 21098", status: "Outpatient" },
-  { id: "PT-1045", name: "Anjali Desai", age: 54, gender: "Female", contact: "+91 65432 10987", status: "Admitted" },
-  { id: "PT-1046", name: "Mohammad Ali", age: 61, gender: "Male", contact: "+91 54321 09876", status: "Outpatient" },
-];
+// 1. Set up the database connection
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
 
-export default function PatientsPage() {
+// 2. Define the TypeScript type for our Supabase data
+type Patient = {
+  id: string;
+  patient_id: string;
+  full_name: string;
+  age: number;
+  gender: string;
+  contact: string;
+  status: string;
+  created_at: Date;
+};
+
+export default async function PatientsPage() {
+  // 3. Fetch the real data directly from Supabase!
+  // We sort by created_at DESC so the newest patients appear at the top
+  const { rows: patients } = await pool.query<Patient>(
+    "SELECT * FROM patients ORDER BY created_at DESC"
+  );
+
   return (
     <div className="flex flex-col gap-6 font-inter">
       {/* Page Header */}
@@ -33,10 +49,7 @@ export default function PatientsPage() {
             Manage and view all registered patients.
           </p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-          <Plus className="h-4 w-4" />
-          Add New Patient
-        </Button>
+        <AddPatientSheet />
       </div>
 
       {/* Toolbar (Search & Filter) */}
@@ -67,39 +80,48 @@ export default function PatientsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {patientsData.map((patient) => (
-              <TableRow key={patient.id} className="border-zinc-200 dark:border-zinc-800">
-                <TableCell className="font-medium text-zinc-900 dark:text-zinc-100">
-                  {patient.id}
-                </TableCell>
-                <TableCell className="text-zinc-700 dark:text-zinc-300">
-                  {patient.name}
-                </TableCell>
-                <TableCell className="text-zinc-600 dark:text-zinc-400">
-                  {patient.age} / {patient.gender.charAt(0)}
-                </TableCell>
-                <TableCell className="text-zinc-600 dark:text-zinc-400">
-                  {patient.contact}
-                </TableCell>
-                <TableCell>
-                  <Badge 
-                    variant="outline"
-                    className={`font-normal ${
-                      patient.status === "Admitted" ? "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800/50" : 
-                      patient.status === "Discharged" ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/50" : 
-                      "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800/50"
-                    }`}
-                  >
-                    {patient.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="icon" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
+            {/* 4. Map over the REAL data from Supabase */}
+            {patients.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-10 text-zinc-500">
+                  No patients found. Click "Add Patient" to register your first patient!
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              patients.map((patient) => (
+                <TableRow key={patient.id} className="border-zinc-200 dark:border-zinc-800">
+                  <TableCell className="font-medium text-zinc-900 dark:text-zinc-100">
+                    {patient.patient_id}
+                  </TableCell>
+                  <TableCell className="text-zinc-700 dark:text-zinc-300">
+                    {patient.full_name}
+                  </TableCell>
+                  <TableCell className="text-zinc-600 dark:text-zinc-400">
+                    {patient.age} / {patient.gender.charAt(0)}
+                  </TableCell>
+                  <TableCell className="text-zinc-600 dark:text-zinc-400">
+                    {patient.contact}
+                  </TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant="outline"
+                      className={`font-normal ${
+                        patient.status === "Admitted" ? "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800/50" : 
+                        patient.status === "Discharged" ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/50" : 
+                        "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800/50"
+                      }`}
+                    >
+                      {patient.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
