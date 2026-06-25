@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, MoreHorizontal, Mail, Phone } from "lucide-react";
 import { AddDoctorSheet } from "@/components/dashboard/doctors/AddDoctorSheet";
 import { Pool } from "pg";
+import Link from "next/link";
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -28,11 +29,32 @@ type Doctor = {
   status: string;
 };
 
-export default async function DoctorsPage() {
-  // Fetch real data from Supabase
-  const { rows: doctors } = await pool.query<Doctor>(
-    "SELECT * FROM doctors ORDER BY created_at DESC"
-  );
+// 1. Force Next.js to always render this dynamically (bypass cache)
+export const dynamic = "force-dynamic";
+
+// 2. Safely type searchParams to support Next.js 14 and 15
+type Props = {
+  searchParams: Promise<{ q?: string }> | { q?: string };
+};
+
+export default async function DoctorsPage(props: Props) {
+  // 3. AWAIT the searchParams so it captures the URL correctly
+  const searchParams = await props.searchParams;
+  const query = searchParams?.q || "";
+
+  // Build our dynamic SQL query
+  let sqlText = "SELECT * FROM doctors";
+  const sqlValues = [];
+
+  if (query) {
+    sqlText += " WHERE full_name ILIKE $1 OR department ILIKE $1 OR doctor_id ILIKE $1";
+    sqlValues.push(`%${query}%`);
+  }
+
+  sqlText += " ORDER BY created_at DESC";
+
+  // Fetch filtered data from Supabase
+  const { rows: doctors } = await pool.query<Doctor>(sqlText, sqlValues);
 
   return (
     <div className="flex flex-col gap-6 font-inter">
@@ -49,19 +71,31 @@ export default async function DoctorsPage() {
         <AddDoctorSheet />
       </div>
 
-      {/* Toolbar */}
-      <div className="flex items-center gap-4 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-          <Input 
-            placeholder="Search by name, ID, or department..." 
-            className="pl-10 bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800"
-          />
+      {/* Toolbar - NOW FUNCTIONAL! */}
+      <form method="GET" className="flex items-center gap-4 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+        <div className="relative flex-1 max-w-md flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            <Input 
+              name="q" 
+              defaultValue={query} // This will now correctly keep your text!
+              placeholder="Search by name, ID, or department..." 
+              className="pl-10 bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800"
+            />
+          </div>
+          <Button type="submit" variant="outline" className="border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-900 dark:text-white shadow-sm">
+            Search
+          </Button>
+          {/* Show a "Clear" button only if a search is active */}
+          {query && (
+            <Link href="/dashboard/doctors">
+              <Button variant="ghost" type="button" className="text-zinc-500 hover:text-rose-600">
+                Clear
+              </Button>
+            </Link>
+          )}
         </div>
-        <Button variant="outline" className="border-zinc-200 dark:border-zinc-800 bg-transparent hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm">
-          Filter by Department
-        </Button>
-      </div>
+      </form>
 
       {/* Data Table */}
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm overflow-hidden">
@@ -79,7 +113,7 @@ export default async function DoctorsPage() {
             {doctors.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-10 text-zinc-500">
-                  No medical staff found. Click "Add Doctor" to register your first doctor!
+                  {query ? `No doctors found matching "${query}".` : "No medical staff found. Click 'Add Doctor' to register your first doctor!"}
                 </TableCell>
               </TableRow>
             ) : (
